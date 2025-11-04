@@ -1,0 +1,10 @@
+pandas>=1.5.0
+yfinance>=0.2.0
+plotly>=5.14.0
+PySide6>=6.5.0
+numpy>=1.23.0
+# Optional: For packaging the application
+# pyinstaller>=6.0.0
+
+# Note: PySide6-WebEngine may be bundled with PySide6 on some platforms
+# If QWebEngineView import fails, try: pip install PySide6-WebEngine

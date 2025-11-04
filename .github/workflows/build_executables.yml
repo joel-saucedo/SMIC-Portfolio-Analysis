@@ -1,0 +1,155 @@
+name: Build Standalone Executables
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+    
+    - name: Create data directory
+      run: |
+        mkdir -p data
+        # Create empty transactions.csv if it doesn't exist
+        if [ ! -f data/transactions.csv ]; then
+          echo "ticker,sector,invest_date,amount_invested,shares" > data/transactions.csv
+        fi
+    
+    - name: Build executable (Linux/macOS)
+      if: runner.os != 'Windows'
+      run: |
+        pyinstaller \
+          --onefile \
+          --windowed \
+          --name "SMIC_Portfolio_Analysis" \
+          --add-data "data:data" \
+          --hidden-import PySide6.QtWebEngineWidgets \
+          --hidden-import plotly.graph_objects \
+          --hidden-import plotly.subplots \
+          --hidden-import pandas \
+          --hidden-import yfinance \
+          --hidden-import numpy \
+          --hidden-import plotly \
+          --exclude-module torch \
+          --exclude-module torchvision \
+          --exclude-module torchaudio \
+          --exclude-module tensorflow \
+          --exclude-module keras \
+          --exclude-module skimage \
+          --exclude-module sklearn \
+          --exclude-module scipy \
+          --exclude-module sympy \
+          --exclude-module numba \
+          --exclude-module cupy \
+          --exclude-module jupyter \
+          --exclude-module IPython \
+          --exclude-module matplotlib \
+          --exclude-module seaborn \
+          --exclude-module PIL \
+          --exclude-module cv2 \
+          --exclude-module opencv \
+          --collect-all PySide6 \
+          --collect-all plotly \
+          main_app.py
+    
+    - name: Build executable (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        pyinstaller `
+          --onefile `
+          --windowed `
+          --name "SMIC_Portfolio_Analysis" `
+          --add-data "data;data" `
+          --hidden-import PySide6.QtWebEngineWidgets `
+          --hidden-import plotly.graph_objects `
+          --hidden-import plotly.subplots `
+          --hidden-import pandas `
+          --hidden-import yfinance `
+          --hidden-import numpy `
+          --hidden-import plotly `
+          --exclude-module torch `
+          --exclude-module torchvision `
+          --exclude-module torchaudio `
+          --exclude-module tensorflow `
+          --exclude-module keras `
+          --exclude-module skimage `
+          --exclude-module sklearn `
+          --exclude-module scipy `
+          --exclude-module sympy `
+          --exclude-module numba `
+          --exclude-module cupy `
+          --exclude-module jupyter `
+          --exclude-module IPython `
+          --exclude-module matplotlib `
+          --exclude-module seaborn `
+          --exclude-module PIL `
+          --exclude-module cv2 `
+          --exclude-module opencv `
+          --collect-all PySide6 `
+          --collect-all plotly `
+          main_app.py
+    
+    - name: Get executable filename
+      id: filename
+      shell: bash
+      run: |
+        if [ "${{ runner.os }}" == "Windows" ]; then
+          echo "name=SMIC_Portfolio_Analysis.exe" >> $GITHUB_OUTPUT
+          echo "path=dist/SMIC_Portfolio_Analysis.exe" >> $GITHUB_OUTPUT
+        else
+          echo "name=SMIC_Portfolio_Analysis" >> $GITHUB_OUTPUT
+          echo "path=dist/SMIC_Portfolio_Analysis" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Get file size
+      id: filesize
+      shell: bash
+      run: |
+        if [ "${{ runner.os }}" == "Windows" ]; then
+          size=$(powershell -Command "(Get-Item 'dist/SMIC_Portfolio_Analysis.exe').Length")
+        else
+          size=$(stat -f%z dist/SMIC_Portfolio_Analysis 2>/dev/null || stat -c%s dist/SMIC_Portfolio_Analysis 2>/dev/null || echo "0")
+        fi
+        echo "size=$size" >> $GITHUB_OUTPUT
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: SMIC_Portfolio_Analysis-${{ runner.os }}
+        path: ${{ steps.filename.outputs.path }}
+        retention-days: 30
+    
+    - name: Create release (on tag)
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          dist/SMIC_Portfolio_Analysis.exe
+          dist/SMIC_Portfolio_Analysis
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

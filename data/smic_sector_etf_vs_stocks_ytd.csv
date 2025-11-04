@@ -1,0 +1,12 @@
+Sector,ETF_Weight_Start (%),ETF_Weight_End (%),ETF_Change (%),Stocks_Weight_Start (%),Stocks_Weight_End (%),Stocks_Change (%),Total_Sector_Start (%),Total_Sector_End (%),Total_Sector_Change (%)
+Technology,16.38,15.57,-0.82,0.0,3.47,3.47,16.38,19.04,2.65
+Healthcare,10.57,6.33,-4.24,0.0,2.28,2.28,10.57,8.62,-1.95
+Financials,11.93,10.14,-1.79,0.0,2.34,2.34,11.93,12.48,0.55
+Consumer_Discretionary,8.7,3.63,-5.07,0.0,5.65,5.65,8.7,9.28,0.58
+Communication_Services,7.71,6.31,-1.4,0.0,2.48,2.48,7.71,8.79,1.08
+Industrials,5.75,1.23,-4.52,0.0,5.1,5.1,5.75,6.33,0.58
+Consumer_Staples,7.14,3.7,-3.44,0.0,2.22,2.22,7.14,5.92,-1.22
+Energy,4.58,2.18,-2.4,0.0,2.38,2.38,4.58,4.57,-0.02
+Materials,2.24,0.44,-1.8,0.0,1.93,1.93,2.24,2.37,0.13
+Real_Estate,3.05,1.48,-1.57,0.0,1.01,1.01,3.05,2.49,-0.56
+Utilities,1.44,1.42,-0.03,0.0,0.11,0.11,1.44,1.53,0.08

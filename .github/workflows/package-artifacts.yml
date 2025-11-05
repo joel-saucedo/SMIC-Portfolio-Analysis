@@ -1,0 +1,167 @@
+name: Package Artifacts for Download
+
+on:
+  workflow_run:
+    workflows: ["Build Windows Executable", "Build macOS Executable", "Build Linux Executable"]
+    types:
+      - completed
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download Windows artifact
+      uses: dawidd6/action-download-artifact@v3
+      with:
+        workflow: build-windows.yml
+        name: SMIC_Portfolio_Analysis-Windows
+        path: packaged/windows
+        
+    - name: Download macOS artifact
+      uses: dawidd6/action-download-artifact@v3
+      with:
+        workflow: build-macos.yml
+        name: SMIC_Portfolio_Analysis-macOS
+        path: packaged/macos
+        
+    - name: Download Linux artifact
+      uses: dawidd6/action-download-artifact@v3
+      with:
+        workflow: build-linux.yml
+        name: SMIC_Portfolio_Analysis-Linux
+        path: packaged/linux
+        
+    - name: Create organized folder structure
+      run: |
+        mkdir -p downloads/SMIC_Portfolio_Analysis
+        mkdir -p downloads/SMIC_Portfolio_Analysis/windows
+        mkdir -p downloads/SMIC_Portfolio_Analysis/macos
+        mkdir -p downloads/SMIC_Portfolio_Analysis/linux
+        
+        # Copy Windows executable
+        if [ -f "packaged/windows/SMIC_Portfolio_Analysis.exe" ]; then
+          cp packaged/windows/SMIC_Portfolio_Analysis.exe downloads/SMIC_Portfolio_Analysis/windows/
+          echo "✅ Windows executable: downloads/SMIC_Portfolio_Analysis/windows/SMIC_Portfolio_Analysis.exe"
+        fi
+        
+        # Copy macOS executable/app
+        if [ -d "packaged/macos/SMIC_Portfolio_Analysis.app" ]; then
+          cp -r packaged/macos/SMIC_Portfolio_Analysis.app downloads/SMIC_Portfolio_Analysis/macos/
+          echo "✅ macOS app: downloads/SMIC_Portfolio_Analysis/macos/SMIC_Portfolio_Analysis.app"
+        elif [ -f "packaged/macos/SMIC_Portfolio_Analysis" ]; then
+          cp packaged/macos/SMIC_Portfolio_Analysis downloads/SMIC_Portfolio_Analysis/macos/
+          chmod +x downloads/SMIC_Portfolio_Analysis/macos/SMIC_Portfolio_Analysis
+          echo "✅ macOS executable: downloads/SMIC_Portfolio_Analysis/macos/SMIC_Portfolio_Analysis"
+        fi
+        
+        # Copy Linux executable
+        if [ -f "packaged/linux/SMIC_Portfolio_Analysis" ]; then
+          cp packaged/linux/SMIC_Portfolio_Analysis downloads/SMIC_Portfolio_Analysis/linux/
+          chmod +x downloads/SMIC_Portfolio_Analysis/linux/SMIC_Portfolio_Analysis
+          echo "✅ Linux executable: downloads/SMIC_Portfolio_Analysis/linux/SMIC_Portfolio_Analysis"
+        fi
+        
+        # Create README
+        cat > downloads/SMIC_Portfolio_Analysis/README.md << 'EOF'
+# SMIC Portfolio Analysis - Executables
+
+This folder contains platform-specific executables for SMIC Portfolio Analysis.
+
+## Structure
+
+```
+SMIC_Portfolio_Analysis/
+├── windows/
+│   └── SMIC_Portfolio_Analysis.exe
+├── macos/
+│   └── SMIC_Portfolio_Analysis.app (or SMIC_Portfolio_Analysis)
+├── linux/
+│   └── SMIC_Portfolio_Analysis
+└── README.md
+```
+
+## Quick Start
+
+### Windows
+1. Navigate to `windows/` folder
+2. Double-click `SMIC_Portfolio_Analysis.exe`
+3. No installation required!
+
+### macOS
+1. Navigate to `macos/` folder
+2. If you see `.app`:
+   - Right-click → Open (first time to bypass Gatekeeper)
+3. If you see executable:
+   - `chmod +x SMIC_Portfolio_Analysis`
+   - `./SMIC_Portfolio_Analysis`
+
+### Linux
+1. Navigate to `linux/` folder
+2. `chmod +x SMIC_Portfolio_Analysis`
+3. `./SMIC_Portfolio_Analysis`
+
+## Requirements
+
+- ✅ No Python installation required
+- ✅ Internet connection required (for Plotly charts)
+- ✅ Application creates `data/` folder automatically
+
+## Support
+
+Visit: https://github.com/joel-saucedo/SMIC-Portfolio-Analysis
+EOF
+        
+        # Create zip files
+        cd downloads
+        
+        # Individual platform zips
+        if [ -f "SMIC_Portfolio_Analysis/windows/SMIC_Portfolio_Analysis.exe" ]; then
+          cd SMIC_Portfolio_Analysis/windows
+          zip -r ../../SMIC_Portfolio_Analysis-Windows.zip SMIC_Portfolio_Analysis.exe
+          cd ../..
+        fi
+        
+        if [ -d "SMIC_Portfolio_Analysis/macos/SMIC_Portfolio_Analysis.app" ] || [ -f "SMIC_Portfolio_Analysis/macos/SMIC_Portfolio_Analysis" ]; then
+          cd SMIC_Portfolio_Analysis/macos
+          if [ -d "SMIC_Portfolio_Analysis.app" ]; then
+            zip -r ../../SMIC_Portfolio_Analysis-macOS.zip SMIC_Portfolio_Analysis.app
+          else
+            zip -r ../../SMIC_Portfolio_Analysis-macOS.zip SMIC_Portfolio_Analysis
+          fi
+          cd ../..
+        fi
+        
+        if [ -f "SMIC_Portfolio_Analysis/linux/SMIC_Portfolio_Analysis" ]; then
+          cd SMIC_Portfolio_Analysis/linux
+          zip -r ../../SMIC_Portfolio_Analysis-Linux.zip SMIC_Portfolio_Analysis
+          cd ../..
+        fi
+        
+        # Combined zip with all platforms
+        zip -r SMIC_Portfolio_Analysis-All-Platforms.zip SMIC_Portfolio_Analysis/
+        
+        echo ""
+        echo "📦 Package structure created:"
+        echo "   downloads/SMIC_Portfolio_Analysis/"
+        echo ""
+        echo "📦 Zip files created:"
+        ls -lh *.zip
+        echo ""
+        tree SMIC_Portfolio_Analysis/ || find SMIC_Portfolio_Analysis/ -type f
+        
+    - name: Upload organized packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: SMIC_Portfolio_Analysis-Downloads
+        path: |
+          downloads/SMIC_Portfolio_Analysis/
+          downloads/*.zip
+        retention-days: 30
+        if-no-files-found: error
+

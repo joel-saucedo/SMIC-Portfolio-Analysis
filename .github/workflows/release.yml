@@ -1,0 +1,149 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g., v1.0.0)'
+        required: true
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name: Download Windows artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: SMIC_Portfolio_Analysis-Windows
+        path: release/windows
+        
+    - name: Download macOS artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: SMIC_Portfolio_Analysis-macOS
+        path: release/macos
+        
+    - name: Download Linux artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: SMIC_Portfolio_Analysis-Linux
+        path: release/linux
+        
+    - name: Create release directory structure
+      run: |
+        mkdir -p release/SMIC_Portfolio_Analysis
+        mkdir -p release/SMIC_Portfolio_Analysis/windows
+        mkdir -p release/SMIC_Portfolio_Analysis/macos
+        mkdir -p release/SMIC_Portfolio_Analysis/linux
+        
+        # Copy Windows executable
+        if [ -f "release/windows/SMIC_Portfolio_Analysis.exe" ]; then
+          cp release/windows/SMIC_Portfolio_Analysis.exe release/SMIC_Portfolio_Analysis/windows/
+          echo "✅ Windows executable copied"
+        fi
+        
+        # Copy macOS executable/app
+        if [ -d "release/macos/SMIC_Portfolio_Analysis.app" ]; then
+          cp -r release/macos/SMIC_Portfolio_Analysis.app release/SMIC_Portfolio_Analysis/macos/
+          echo "✅ macOS app bundle copied"
+        elif [ -f "release/macos/SMIC_Portfolio_Analysis" ]; then
+          cp release/macos/SMIC_Portfolio_Analysis release/SMIC_Portfolio_Analysis/macos/
+          echo "✅ macOS executable copied"
+        fi
+        
+        # Copy Linux executable
+        if [ -f "release/linux/SMIC_Portfolio_Analysis" ]; then
+          cp release/linux/SMIC_Portfolio_Analysis release/SMIC_Portfolio_Analysis/linux/
+          chmod +x release/SMIC_Portfolio_Analysis/linux/SMIC_Portfolio_Analysis
+          echo "✅ Linux executable copied"
+        fi
+        
+        # Create README
+        cat > release/SMIC_Portfolio_Analysis/README.md << 'EOF'
+# SMIC Portfolio Analysis - Executables
+
+This folder contains platform-specific executables for SMIC Portfolio Analysis.
+
+## Downloads
+
+### Windows
+- **Location**: `windows/SMIC_Portfolio_Analysis.exe`
+- **Usage**: Double-click to run. No installation required.
+
+### macOS
+- **Location**: `macos/SMIC_Portfolio_Analysis.app` (or `SMIC_Portfolio_Analysis`)
+- **Usage**: 
+  - If `.app`: Right-click → Open (first time to bypass Gatekeeper)
+  - If executable: `chmod +x SMIC_Portfolio_Analysis && ./SMIC_Portfolio_Analysis`
+
+### Linux
+- **Location**: `linux/SMIC_Portfolio_Analysis`
+- **Usage**: `chmod +x SMIC_Portfolio_Analysis && ./SMIC_Portfolio_Analysis`
+
+## Requirements
+
+- No Python installation required
+- Internet connection required for Plotly charts (uses CDN)
+- The application will create a `data/` folder automatically
+
+## Support
+
+For issues or questions, please visit the GitHub repository.
+EOF
+        
+        # Create zip archives for each platform
+        cd release
+        
+        if [ -f "SMIC_Portfolio_Analysis/windows/SMIC_Portfolio_Analysis.exe" ]; then
+          cd SMIC_Portfolio_Analysis/windows
+          zip -r ../../SMIC_Portfolio_Analysis-Windows.zip .
+          cd ../..
+          echo "✅ Created Windows zip"
+        fi
+        
+        if [ -d "SMIC_Portfolio_Analysis/macos/SMIC_Portfolio_Analysis.app" ] || [ -f "SMIC_Portfolio_Analysis/macos/SMIC_Portfolio_Analysis" ]; then
+          cd SMIC_Portfolio_Analysis/macos
+          zip -r ../../SMIC_Portfolio_Analysis-macOS.zip .
+          cd ../..
+          echo "✅ Created macOS zip"
+        fi
+        
+        if [ -f "SMIC_Portfolio_Analysis/linux/SMIC_Portfolio_Analysis" ]; then
+          cd SMIC_Portfolio_Analysis/linux
+          zip -r ../../SMIC_Portfolio_Analysis-Linux.zip .
+          cd ../..
+          echo "✅ Created Linux zip"
+        fi
+        
+        # Create combined zip
+        zip -r SMIC_Portfolio_Analysis-All-Platforms.zip SMIC_Portfolio_Analysis/
+        echo "✅ Created combined zip with all platforms"
+        
+        ls -lh *.zip
+        echo ""
+        echo "📦 Release packages created!"
+        
+    - name: Upload release packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: SMIC_Portfolio_Analysis-Release
+        path: |
+          release/SMIC_Portfolio_Analysis-All-Platforms.zip
+          release/SMIC_Portfolio_Analysis-Windows.zip
+          release/SMIC_Portfolio_Analysis-macOS.zip
+          release/SMIC_Portfolio_Analysis-Linux.zip
+          release/SMIC_Portfolio_Analysis/
+        retention-days: 30
+

@@ -4,7 +4,7 @@ Official portfolio analysis and tracking software developed as a service to the 
 
 ## Project Overview
 
-The SMIC Portfolio Analysis system simulates a portfolio that starts with 100% Vanguard sector ETFs (equal-weighted across 11 sectors) and allows strategic swaps from ETFs to individual stocks within each sector. The system tracks portfolio performance, sector drift, and provides detailed analytics against the S&P 500 benchmark.
+The SMIC Portfolio Analysis system simulates a portfolio that starts with an initial allocation across 11 Vanguard sector ETFs, fixed income securities, and cash. The system allows strategic swaps from ETFs to individual stocks within each sector, tracking portfolio performance, sector drift, and providing detailed analytics against the S&P 500 benchmark.
 
 ## Key Features
 
@@ -214,20 +214,9 @@ We welcome contributions! Please see our development guidelines and feel free to
 
 ## License
 
-Copyright (c) 2025 Joel Saucedo. All rights reserved.
+This software is licensed under a proprietary license. See [LICENSE](LICENSE) file for full terms and conditions.
 
-This software and associated documentation files (the "Software") are the proprietary property of Joel Saucedo. The Software is protected by copyright laws and international copyright treaties, as well as other intellectual property laws and treaties.
-
-**Rights Reserved**: Joel Saucedo retains all rights, title, and interest in and to the Software, including all intellectual property rights therein.
-
-**Restrictions**: 
-- The Software may not be copied, modified, distributed, or used for any purpose without the express written permission of Joel Saucedo.
-- Redistribution of the Software, in whole or in part, requires prior written consent from Joel Saucedo.
-- Any use of the Software for commercial purposes is strictly prohibited without explicit authorization.
-
-**Educational Use**: Limited use of the Software for educational purposes at Georgia College & State University is permitted under the supervision of the Student Managed Investment Committee, subject to the restrictions above.
-
-For licensing inquiries, permissions, or questions regarding the use of this software, please contact Joel Saucedo.
+**Summary**: Copyright (c) 2025 Joel Saucedo. All rights reserved. This software is proprietary and may not be copied, modified, or distributed without express written permission from Joel Saucedo. Limited educational use at Georgia College & State University is permitted under SMIC supervision.
 
 ## Contact
 

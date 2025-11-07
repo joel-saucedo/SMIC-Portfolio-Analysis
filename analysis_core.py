@@ -15,9 +15,9 @@ from datetime import datetime
 import warnings
 warnings.filterwarnings('ignore')
 
-# Ensure output directories exist
-os.makedirs('data', exist_ok=True)
-os.makedirs('figs', exist_ok=True)
+# Note: data directory should already exist with transactions.csv
+# We don't create it here to avoid permission issues when running as executable
+# Output directory for figs can be created on-demand if needed
 
 # Vanguard ETF mappings
 V = {

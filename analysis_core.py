@@ -253,12 +253,35 @@ def generate_portfolio_analysis(transactions_file: str = 'data/transactions.csv'
     
     # Handle data path for both development and PyInstaller executable
     import sys
+    original_transactions_file = transactions_file
+    
     if getattr(sys, 'frozen', False):
         # Running as compiled executable
-        base_path = sys._MEIPASS
-        if not os.path.exists(os.path.join(base_path, transactions_file)):
-            # Try relative to executable location
-            exe_dir = os.path.dirname(sys.executable)
+        # Try multiple locations in order:
+        # 1. Relative to executable (when extracted from zip)
+        exe_dir = os.path.dirname(sys.executable)
+        possible_paths = [
+            os.path.join(exe_dir, transactions_file),  # Same dir as exe: data/transactions.csv
+            os.path.join(exe_dir, os.path.basename(transactions_file)),  # Same dir as exe: transactions.csv
+            os.path.join(sys._MEIPASS, transactions_file),  # PyInstaller bundle
+            os.path.join(sys._MEIPASS, os.path.basename(transactions_file)),  # PyInstaller bundle (no subdir)
+        ]
+        
+        # Also try parent directory of executable
+        if os.path.dirname(exe_dir):
+            parent_dir = os.path.dirname(exe_dir)
+            possible_paths.extend([
+                os.path.join(parent_dir, transactions_file),
+                os.path.join(parent_dir, 'data', os.path.basename(transactions_file)),
+            ])
+        
+        # Find the first path that exists
+        for path in possible_paths:
+            if os.path.exists(path) and os.path.isfile(path):
+                transactions_file = path
+                break
+        else:
+            # If not found, default to relative to executable
             transactions_file = os.path.join(exe_dir, transactions_file)
     else:
         # Running as script
@@ -269,6 +292,19 @@ def generate_portfolio_analysis(transactions_file: str = 'data/transactions.csv'
     
     # Load data
     try:
+        # Verify file exists and is readable before attempting to read
+        if not os.path.exists(transactions_file):
+            error_msg = f"Transaction data file not found at: {transactions_file}\n"
+            if getattr(sys, 'frozen', False):
+                error_msg += f"Executable location: {os.path.dirname(sys.executable)}\n"
+                error_msg += f"Looking for: {original_transactions_file}\n"
+                error_msg += "Please ensure the data directory and transactions.csv file are in the same directory as the executable."
+            raise FileNotFoundError(error_msg)
+        
+        if not os.path.isfile(transactions_file):
+            raise FileNotFoundError(f"Path exists but is not a file: {transactions_file}")
+        
+        # Try to read the file
         df = pd.read_csv(transactions_file, parse_dates=['invest_date'])
         if df.empty:
             raise ValueError("Transaction data file is empty")
@@ -276,10 +312,14 @@ def generate_portfolio_analysis(transactions_file: str = 'data/transactions.csv'
         missing_cols = [col for col in required_columns if col not in df.columns]
         if missing_cols:
             raise ValueError(f"Missing required columns: {missing_cols}")
+    except PermissionError as e:
+        raise PermissionError(f"Access denied reading transaction data file: {transactions_file}\n"
+                            f"Error: {str(e)}\n"
+                            f"Please ensure the file is not locked by another process and you have read permissions.")
     except FileNotFoundError:
-        raise FileNotFoundError(f"Transaction data file not found: {transactions_file}")
+        raise  # Re-raise with our custom message
     except Exception as e:
-        raise RuntimeError(f"Error loading transaction data: {str(e)}")
+        raise RuntimeError(f"Error loading transaction data from {transactions_file}: {str(e)}")
     
     # Determine start date
     start_date = df['invest_date'].min()

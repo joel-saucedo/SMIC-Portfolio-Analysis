@@ -42,12 +42,39 @@ jobs:
       
       - name: Create Windows zip with data
         run: |
+          # Clean up any existing release-package directory
+          if (Test-Path "release-package") {
+            Remove-Item -Recurse -Force "release-package"
+          }
+          # Create fresh directory structure
           New-Item -ItemType Directory -Force -Path "release-package" | Out-Null
           Copy-Item "dist\SMIC_Portfolio_Analysis.exe" -Destination "release-package\"
-          New-Item -ItemType Directory -Force -Path "release-package\data" | Out-Null
-          Copy-Item "data\transactions.csv" -Destination "release-package\data\"
+          # Create data directory
+          $dataDir = "release-package\data"
+          New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
+          # Copy transactions.csv to data directory
+          Copy-Item "data\transactions.csv" -Destination "$dataDir\transactions.csv" -Force
+          # Verify files were copied
+          if (-not (Test-Path "release-package\SMIC_Portfolio_Analysis.exe")) {
+            Write-Host "ERROR: Executable not copied!"
+            exit 1
+          }
+          if (-not (Test-Path "$dataDir\transactions.csv")) {
+            Write-Host "ERROR: transactions.csv not copied!"
+            exit 1
+          }
+          # Create zip file
           Compress-Archive -Path "release-package\*" -DestinationPath "dist\SMIC_Portfolio_Analysis_windows.zip" -Force
           Write-Host "Created Windows zip with executable and data file"
+          # Verify zip contents
+          $zipContents = Expand-Archive -Path "dist\SMIC_Portfolio_Analysis_windows.zip" -DestinationPath "release-package-verify" -Force
+          if (Test-Path "release-package-verify\SMIC_Portfolio_Analysis.exe" -and Test-Path "release-package-verify\data\transactions.csv") {
+            Write-Host "✓ Verified: Zip contains executable and data file"
+            Remove-Item -Recurse -Force "release-package-verify"
+          } else {
+            Write-Host "ERROR: Zip verification failed!"
+            exit 1
+          }
       
       - name: Upload Windows zip
         uses: actions/upload-artifact@v4
